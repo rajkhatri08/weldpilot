@@ -57,7 +57,7 @@ Don't create or edit these. Explain, hint when asked, and review. If a task need
 
 ## Code style
 
-- Python 3.11, type hints everywhere, `pathlib`, no bare `except`.
+- Python 3.12, type hints everywhere, `pathlib`, no bare `except`.
 - Pure functions; file and network I/O at the edges.
 - Paths come from config (`WELDPILOT_DATA`, default `./data`), never hard-coded.
 - Portable code: no OS-specific paths, and project tasks as Typer CLI commands rather than shell scripts.
