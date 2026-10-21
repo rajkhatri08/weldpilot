@@ -25,6 +25,7 @@
       "Read(**/kaggle.json)",
       "Read(~/.kaggle/**)",
       "Read(/data/raw/**/test/**)",
+      "Edit(/data/raw/**)",
       "Edit(/src/weldpilot/data/splits.py)",
       "Edit(/tests/test_leakage.py)",
       "Edit(/src/weldpilot/eval/metrics.py)",
