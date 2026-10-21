@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff *)",
+      "Bash(uv run mypy *)",
+      "Bash(uv run weldpilot *)",
+      "Bash(uv sync *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "ask": [
+      "Bash(uv add *)",
+      "Bash(uv remove *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/kaggle.json)",
+      "Read(~/.kaggle/**)",
+      "Read(/data/raw/**/test/**)",
+      "Edit(/src/weldpilot/data/splits.py)",
+      "Edit(/tests/test_leakage.py)",
+      "Edit(/src/weldpilot/eval/metrics.py)",
+      "Edit(/src/weldpilot/eval/stats.py)",
+      "Edit(/src/weldpilot/detect/cusum.py)",
+      "Edit(/src/weldpilot/detect/arc_state.py)",
+      "Edit(/src/weldpilot/cause/abstain.py)"
+    ]
+  }
+}

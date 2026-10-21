@@ -1,0 +1,11 @@
+# Same line endings on Windows, macOS and CI
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never diff or convert
+*.png binary
+*.jpg binary
+*.parquet binary
+*.onnx binary
+*.zip binary
