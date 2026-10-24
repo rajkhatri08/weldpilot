@@ -1,0 +1,19 @@
+# Written by `weldpilot data verify --record`. Re-record rather than edit by hand.
+# fingerprint = SHA-256 of a manifest with one line per file in the parts below,
+# sorted by path: "<path>\t<size in bytes>\t<SHA-256 of the file>\n". Paths are
+# relative to the dataset folder and "/"-separated. Files named .DS_Store are skipped.
+dataset: tig-al5083
+fingerprint: 931a5ad08ea12a7271a47fb77d47fd33ea19720c22c3451b5386d9c8627dd4cc
+parts:
+  train:
+    png: 26666
+    other: 1
+    bytes: 4791436340
+  test:
+    png: 6588
+    other: 1
+    bytes: 1209923556
+  README:
+    png: 0
+    other: 1
+    bytes: 141

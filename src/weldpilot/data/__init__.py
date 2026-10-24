@@ -1,1 +1,1 @@
-"""Dataset indexing, trial splits and frame loading."""
+"""Dataset fingerprinting and indexing, session splits and frame loading."""

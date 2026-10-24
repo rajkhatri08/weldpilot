@@ -13,6 +13,7 @@ MODULES = [
     "weldpilot.report",
     "weldpilot.cli",
     "weldpilot.config",
+    "weldpilot.provenance",
 ]
 
 
