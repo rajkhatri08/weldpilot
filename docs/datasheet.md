@@ -31,7 +31,7 @@ Crossing sessions, never used for training, calibration or model selection (data
 
 A session can hold several classes, so the session columns don't add up to 39. Flagged (fewer than 2 train-only sessions): 1 burn through. Such a class can't have one session held out for validation while another trains; crossing sessions count for neither (data rule 3).
 
-Source: `weldpilot data composition`, from the index built at git 0eab73a1c74ae2b76abfbec19c34477b275a9b37-dirty on the dataset with fingerprint 931a5ad08ea12a7271a47fb77d47fd33ea19720c22c3451b5386d9c8627dd4cc (checked against configs/dataset.yaml). Counts are exact for this release, not estimates.
+Source: `weldpilot data composition`, from the index built at git 117864f07990f501b78306dd29bde0cc24376aaf on the dataset with fingerprint 931a5ad08ea12a7271a47fb77d47fd33ea19720c22c3451b5386d9c8627dd4cc (checked against configs/dataset.yaml). Counts are exact for this release, not estimates.
 
 ### The al5083/ copy
 
