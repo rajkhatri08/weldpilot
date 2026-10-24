@@ -25,7 +25,7 @@ Raj is building this to learn Claude Code and to show it in interviews. Explain 
 ## Data rules (never break these)
 
 1. The unit is the session: one continuous recording, named by the YYMMDD-HHMMSS prefix of its folders. A session's folders are segments ("parts") of that recording. Split by session, never by folder or frame.
-2. The official test set stays locked until gate G4 (Jan 24, 2027). Don't open, display, featurize or train on test images. Counting files, indexing paths and labels, and perceptual hashes for the leakage audit are the only exceptions.
+2. The official test set stays locked until gate G4 (Jan 24, 2027). Don't open, display, featurize or train on test images. Counting files, indexing paths and labels, SHA-256 checksums for the dataset fingerprint, and perceptual hashes for the leakage audit are the only exceptions.
 3. Sessions with folders in both train/ and test/ (five in this release) are never used for training, calibration or model selection, so no test session is seen during training.
 4. Every analysis gets its sessions from `weldpilot.data.splits`. No ad-hoc splits.
 5. Thresholds and calibration come from held-out training sessions only. Never use Anomalib's Folder default `val_split_mode=FROM_TEST`.

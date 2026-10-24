@@ -19,7 +19,7 @@ Datasets live in `./data` by default. Set `WELDPILOT_DATA` to use another folder
 
 ## How this project is built
 
-I use [Claude Code](https://claude.com/claude-code) as a pair programmer for scaffolding, tooling, tests and reviews. I write the core files myself: the trial splits, the leakage test, the evaluation metrics and statistics, the CUSUM detector, the arc-state logic and the abstention rule. `CLAUDE.md` lists them. Design decisions are recorded in `docs/adr/`.
+I use [Claude Code](https://claude.com/claude-code) as a pair programmer for scaffolding, tooling, tests and reviews. I write the core files myself: the session splits, the leakage test, the evaluation metrics and statistics, the CUSUM detector, the arc-state logic and the abstention rule. `CLAUDE.md` lists them. Design decisions are recorded in `docs/adr/`.
 
 ## Licence
 

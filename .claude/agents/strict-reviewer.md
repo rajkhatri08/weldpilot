@@ -13,7 +13,7 @@ Review what you were asked to review. If no scope was given, review the changes 
 
 Check, in this order:
 
-1. **Leakage and test access**: splits are by trial; nothing reads official test images before G4; thresholds come from held-out training trials; every analysis gets its trials from `weldpilot.data.splits`.
+1. **Leakage and test access**: splits are by session; nothing reads official test images before G4; thresholds come from held-out training sessions; every analysis gets its sessions from `weldpilot.data.splits`.
 2. **Claims**: every number in code output, docs or reports has its unit, n, a 95% interval and, for alarm rates, the exposure. No claim that the code doesn't back.
 3. **Tests**: do they check behaviour, edge cases and failure paths, or only that code runs? Would they catch a regression? Are they fast and free of real data?
 4. **Code**: correctness, hidden state, hard-coded paths, silent `except`, magic numbers, missing type hints, code that only works on one operating system.

@@ -35,6 +35,7 @@ The CLI is built from type-hinted functions, so the types document the commands.
 
 - Contributors need only uv; it installs Python 3.12 itself.
 - pandas, SciPy, PyYAML and pyarrow ship without type information. When `src/` first imports one, we decide between stub packages and mypy overrides (deferred until then).
+- Settled 2026-10-24: stub packages, not mypy overrides: `pandas-stubs` and `types-PyYAML` in the dev group (pyarrow is used only through pandas; SciPy isn't imported yet).
 - The ruff version in `uv.lock` and the `rev` in `.pre-commit-config.yaml` must be bumped together.
 
 ## Alternatives considered
