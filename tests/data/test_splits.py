@@ -19,7 +19,7 @@ from weldpilot.data.index import SESSIONS_FILE, build_index, write_index
 MakeDataset = Callable[..., Path]
 Selector = Callable[[pd.DataFrame], list[str]]
 # session_id, in_train, in_test, crosses_split. None stands for a null.
-Row = tuple[str, bool | None, bool | None, bool | None]
+Row = tuple[str | None, bool | None, bool | None, bool | None]
 
 COLUMNS = {"session_id": "str", "in_train": "bool", "in_test": "bool", "crosses_split": "bool"}
 """The columns load_sessions needs, with the types `weldpilot data index` writes."""
@@ -192,6 +192,17 @@ def test_a_null_flag_is_an_error(tmp_path: Path, selector: str, column: str, dty
     sessions = splits.load_sessions(_write(tmp_path, table))
     assert sessions[column].isna().any()  # the null survived load_sessions
     with pytest.raises(ValueError, match=BAD_ID):
+        select(sessions)
+
+
+@pytest.mark.parametrize("selector", SELECTORS)
+def test_a_row_without_a_session_id_is_an_error(tmp_path: Path, selector: str) -> None:
+    select: Selector = getattr(splits, selector)
+    # Valid flags, so only a check for the missing id catches the middle row.
+    sessions = _load(tmp_path, [TRAIN_ONLY, (None, True, False, False), TEST_ONLY])
+    assert sessions["session_id"].isna().tolist() == [False, True, False]  # kept by load_sessions
+    # With no id to name, the message names the row: 1 is the middle one, counting from 0.
+    with pytest.raises(ValueError, match="row 1"):
         select(sessions)
 
 
