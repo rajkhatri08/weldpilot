@@ -19,3 +19,8 @@ def test_info_prints_versions_and_data_root(
     assert __version__ in result.output
     assert platform.python_version() in result.output
     assert str(tmp_path) in result.output
+
+
+def test_tracebacks_never_print_local_variables() -> None:
+    # Locals can hold labels that Raj marks blind, or test-set details (data rule 2).
+    assert app.pretty_exceptions_show_locals is False

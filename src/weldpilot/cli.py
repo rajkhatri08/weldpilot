@@ -7,10 +7,14 @@ import typer
 from weldpilot import __version__
 from weldpilot.config import get_settings
 from weldpilot.data.commands import app as data_app
+from weldpilot.data.onset_commands import app as onset_app
 from weldpilot.provenance import git_sha
 
-app = typer.Typer(no_args_is_help=True)
+# A crash must never print local variables: they can hold labels that Raj marks blind, or
+# test-set details (data rule 2). This is Typer's default too; here it is pinned.
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 app.add_typer(data_app, name="data")
+app.add_typer(onset_app, name="onset")
 
 
 @app.callback()
