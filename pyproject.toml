@@ -53,3 +53,8 @@ files = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# An unknown marker is an error: a misspelt @pytest.mark.data would otherwise mark nothing.
+addopts = "--strict-markers"
+markers = [
+    "data: reads the real local index under WELDPILOT_DATA, so it needs the dataset on this machine",
+]
