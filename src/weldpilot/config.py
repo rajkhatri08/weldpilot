@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     """WeldPilot settings. Each field can be overridden by an environment variable."""
 
     data_root: Path = Field(default=Path("data"), validation_alias="WELDPILOT_DATA")
+    reports_root: Path = Field(default=Path("reports"), validation_alias="WELDPILOT_REPORTS")
 
 
 def get_settings() -> Settings:

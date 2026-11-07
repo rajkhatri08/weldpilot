@@ -12,7 +12,7 @@ import typer
 
 from weldpilot.config import get_settings
 from weldpilot.data import splits
-from weldpilot.data.al5083 import DATASET_DIR
+from weldpilot.data.al5083 import DATASET_DIR, in_train_folder
 from weldpilot.data.index import FRAMES_FILE
 from weldpilot.data.onset import (
     MARKS_FILE_NAME,
@@ -21,13 +21,13 @@ from weldpilot.data.onset import (
     onset_candidates,
     pick_sessions,
 )
-from weldpilot.provenance import git_sha
+from weldpilot.provenance import git_sha, provenance_json, write_provenance
 from weldpilot.report.onset_sheet import make_sheet
 
 app = typer.Typer(no_args_is_help=True, help="Mark fault onsets by eye, blind to the labels.")
 
-SHEETS_DIR = Path("reports") / "onset_sheets"
-"""Relative to the working directory, like the configs/dataset.yaml default."""
+SHEETS_FOLDER = "onset_sheets"
+"""In the reports folder: WELDPILOT_REPORTS, default reports/ in the working directory."""
 
 SHEET_COLUMNS = ["session_id", "split", "frame_number", "rel_path"]
 """All that `sheets` reads from frames.parquet: the label column never leaves the disk."""
@@ -55,6 +55,8 @@ def pick(
     ] = False,
 ) -> None:
     """Pick up to --n training sessions with a good-to-fault change; start onset_marks.csv."""
+    # Read first: git tracks the marks file, so once it is written the tree is dirty.
+    code_sha = git_sha()
     marks = _marks_path()
     if marks.exists() and not force:
         _fail(f"{marks} already exists and may hold your marks; pass --force to overwrite it")
@@ -66,13 +68,16 @@ def pick(
     marks.parent.mkdir(parents=True, exist_ok=True)
     marks.write_text(marks_csv(picked), encoding="utf-8", newline="")
     typer.echo(f"qualified  {len(candidates)} training sessions with a good-to-fault change")
-    typer.echo(f"picked     {len(picked)} (seed {seed}, git {git_sha()})")
+    typer.echo(f"picked     {len(picked)} (seed {seed}, git {code_sha})")
     typer.echo(f"wrote      {marks}")
 
 
 @app.command()
 def sheets() -> None:
-    """Draw reports/onset_sheets/<session_id>.png for each session in onset_marks.csv."""
+    """Draw onset_sheets/<session_id>.png in the reports folder for each session in
+    onset_marks.csv."""
+    code_sha = git_sha()  # before anything is drawn (data rule 8)
+    reports = get_settings().reports_root
     marks = _marks_path()
     if not marks.is_file():
         _fail(f"no {marks}; run `weldpilot onset pick` first")
@@ -105,12 +110,27 @@ def sheets() -> None:
                 f"session {session_id}: frames.parquet doesn't match sessions.parquet; "
                 "rebuild the index with `weldpilot data index`"
             )
+        # The split column and the paths must agree: a path outside train/ is never opened.
+        if not all(in_train_folder(str(rel_path)) for rel_path in mine["rel_path"]):
+            _fail(
+                f"session {session_id}: frames.parquet lists a frame outside train/, so no "
+                "sheet was drawn; rebuild the index with `weldpilot data index`"
+            )
         to_draw[session_id] = {
             int(number): root / rel_path
             for number, rel_path in zip(mine["frame_number"], mine["rel_path"], strict=True)
         }
-    SHEETS_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = reports / SHEETS_FOLDER
+    out_dir.mkdir(parents=True, exist_ok=True)
     for session_id, paths in to_draw.items():
-        out = SHEETS_DIR / f"{session_id}.png"
+        out = out_dir / f"{session_id}.png"
         make_sheet(session_id, paths).save(out)
         typer.echo(f"wrote {out}")
+    # Sheet file names are session ids, some marked blind, so the record names the folder.
+    record = provenance_json(
+        "weldpilot onset sheets",
+        [f"{SHEETS_FOLDER}/"],
+        code_sha,
+        str(frames.attrs.get("dataset_fingerprint", "unknown")),
+    )
+    typer.echo(f"wrote {write_provenance(reports, SHEETS_FOLDER, record)}")

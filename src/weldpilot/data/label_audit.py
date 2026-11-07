@@ -18,6 +18,7 @@ import pandas as pd
 
 from weldpilot.data.al5083 import ASSUMED_FPS, CLASS_NAMES, GOOD_WELD
 from weldpilot.data.composition import markdown_table
+from weldpilot.data.onset import read_marks
 
 LONG_GAP_FRAMES = 10
 """A gap is long when more than this many frame numbers are missing."""
@@ -218,32 +219,29 @@ def _onset_frame(value: str | None, source: str, line: int, session_id: str) -> 
 
 
 def parse_marks(text: str, source: str) -> list[Mark]:
-    """The rows of an onset marks file, in file order.
+    """The rows of an onset marks file, in file order, as `onset.read_marks` reads it.
 
-    Rows whose cells are all blank are skipped, as in `onset.marked_sessions`. A blank pass
-    is pass 1, and a blank onset_frame means not marked yet. Raises ValueError naming any
-    missing column; the line of a row with no session_id, a pass that isn't 1, 2, ... or an
-    onset_frame that isn't a whole number; and any session with two rows for one pass.
+    A blank pass is pass 1, and a blank onset_frame means not marked yet. Raises ValueError
+    naming any missing column; the line of a row with no session_id, a pass that isn't 1,
+    2, ... or an onset_frame that isn't a whole number; and any session with two rows for
+    one pass.
     """
-    reader = csv.DictReader(io.StringIO(text))
-    fields = reader.fieldnames or []
-    missing = [name for name in MARK_COLUMNS if name not in fields]
+    columns, rows = read_marks(text)
+    missing = [name for name in MARK_COLUMNS if name not in columns]
     if missing:
         raise ValueError(f"{source} is missing columns: {', '.join(missing)}")
     marks: list[Mark] = []
     seen: set[tuple[str, int]] = set()
-    for row in reader:
-        if not any(str(cell).strip() for cell in row.values() if cell):
-            continue
-        line = reader.line_num
-        session_id = (row["session_id"] or "").strip()
+    for row in rows:
+        line = row.line
+        session_id = row.cells["session_id"]
         if not session_id:
             raise ValueError(f"{source} line {line} has no session_id")
-        pass_number = _pass_number(row["pass"], source, line)
+        pass_number = _pass_number(row.cells["pass"], source, line)
         if (session_id, pass_number) in seen:
             raise ValueError(f"{source}: session {session_id} has two rows for pass {pass_number}")
         seen.add((session_id, pass_number))
-        onset_frame = _onset_frame(row["onset_frame"], source, line, session_id)
+        onset_frame = _onset_frame(row.cells["onset_frame"], source, line, session_id)
         marks.append(Mark(line, session_id, pass_number, onset_frame))
     return marks
 

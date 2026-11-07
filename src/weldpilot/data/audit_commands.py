@@ -23,7 +23,7 @@ from PIL import Image
 
 from weldpilot.config import get_settings
 from weldpilot.data import duplicate_audit, phash, splits
-from weldpilot.data.al5083 import DATASET_DIR
+from weldpilot.data.al5083 import DATASET_DIR, in_train_folder
 from weldpilot.data.fingerprint import digest_file
 from weldpilot.data.index import FRAMES_FILE
 from weldpilot.data.label_audit import (
@@ -35,13 +35,13 @@ from weldpilot.data.label_audit import (
     timelines,
 )
 from weldpilot.data.onset import MARKS_FILE_NAME, marked_sessions
-from weldpilot.provenance import git_sha
+from weldpilot.provenance import git_sha, provenance_json, write_provenance
 from weldpilot.report.label_timelines import draw_timelines
 
 app = typer.Typer(no_args_is_help=True, help="Audit the dataset, by session.")
 
-AUDIT_DIR = Path("reports") / "audit"
-"""Relative to the working directory, like reports/onset_sheets."""
+AUDIT_FOLDER = "audit"
+"""In the reports folder (WELDPILOT_REPORTS, default reports/), like onset_sheets."""
 
 TIMELINES_FILE = "label_timelines.png"
 SUMMARY_FILE = "labels_summary.csv"
@@ -70,10 +70,14 @@ def labels(
         ),
     ] = False,
 ) -> None:
-    """Write label timelines, a per-session summary and the onset comparison to reports/audit/."""
+    """Write label timelines, a per-session summary and the onset comparison to audit/ in
+    the reports folder."""
     if not unblind:
         _fail(BLIND_WARNING)  # before anything is read
-    data_root = get_settings().data_root
+    code_sha = git_sha()  # before the long steps (data rule 8)
+    settings = get_settings()
+    data_root = settings.data_root
+    audit_dir = settings.reports_root / AUDIT_FOLDER
     derived = data_root / "derived"
     marks_path = data_root / "annotations" / MARKS_FILE_NAME
     try:
@@ -118,8 +122,7 @@ def labels(
     except ValueError as err:
         _fail(f"{marks_path} {err}")
 
-    # Every check has passed: write all three files.
-    code_sha = git_sha()
+    # Every check has passed: write all three files, then their provenance.
     provenance = Provenance(
         code_git_sha=code_sha,
         index_git_sha=str(frames.attrs.get("git_sha", "unknown")),
@@ -127,19 +130,28 @@ def labels(
         marks_sha256=hashlib.sha256(marks_bytes).hexdigest(),
     )
     source = f"weldpilot audit labels, git {code_sha}"
-    AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+    audit_dir.mkdir(parents=True, exist_ok=True)
     figure = draw_timelines(sessions, footer=source)
-    figure.savefig(AUDIT_DIR / TIMELINES_FILE, metadata={"Source": source})
-    (AUDIT_DIR / SUMMARY_FILE).write_text(summary_csv(sessions), encoding="utf-8", newline="")
+    figure.savefig(audit_dir / TIMELINES_FILE, metadata={"Source": source})
+    (audit_dir / SUMMARY_FILE).write_text(summary_csv(sessions), encoding="utf-8", newline="")
     report = audit_markdown(sessions, marks, comparisons, provenance)
-    (AUDIT_DIR / REPORT_FILE).write_text(report, encoding="utf-8", newline="")
+    (audit_dir / REPORT_FILE).write_text(report, encoding="utf-8", newline="")
+    outputs = (TIMELINES_FILE, SUMMARY_FILE, REPORT_FILE)
+    record = provenance_json(
+        "weldpilot audit labels",
+        [f"{AUDIT_FOLDER}/{name}" for name in outputs],
+        code_sha,
+        provenance.dataset_fingerprint,
+    )
+    written = write_provenance(settings.reports_root, "audit_labels", record)
 
     n_frames = sum(t.n_frames for t in sessions)
     passes = ", ".join(str(p) for p in sorted({m.pass_number for m in marks})) or "none"
     typer.echo(f"audited  {len(sessions)} training sessions ({n_frames:,} frames)")
     typer.echo(f"marks    {len(comparisons)} onset marks (passes: {passes})")
-    for name in (TIMELINES_FILE, SUMMARY_FILE, REPORT_FILE):
-        typer.echo(f"wrote    {AUDIT_DIR / name}")
+    for name in outputs:
+        typer.echo(f"wrote    {audit_dir / name}")
+    typer.echo(f"wrote    {written}")
 
 
 DUPLICATES_CSV = "duplicates.csv"
@@ -195,9 +207,12 @@ def duplicates(
     ] = os.cpu_count() or 1,
 ) -> None:
     """Hash every frame; report near-identical pairs across the split and between training
-    sessions in reports/audit/."""
+    sessions in audit/ in the reports folder."""
     started_run = time.perf_counter()
-    data_root = get_settings().data_root
+    code_sha = git_sha()  # before the hashing, the long step (data rule 8)
+    settings = get_settings()
+    data_root = settings.data_root
+    audit_dir = settings.reports_root / AUDIT_FOLDER
     derived = data_root / "derived"
     release = data_root / "raw" / DATASET_DIR
     try:
@@ -228,7 +243,6 @@ def duplicates(
     except OSError as err:
         _fail(f"can't hash every frame: {err}")
     hash_seconds = time.perf_counter() - started
-    code_sha = git_sha()
     index_sha = str(frames.attrs.get("git_sha", "unknown"))
     fingerprint = str(frames.attrs.get("dataset_fingerprint", "unknown"))
     table = hashed.table
@@ -286,10 +300,11 @@ def duplicates(
         shown = duplicate_audit.thumbnail_frames(kind, a_sid, int(a_number), b_sid, int(b_number))
         for sid, number in shown:
             split, rel = where[(sid, number)]
-            if split != "train" or sid not in allowed:
+            # The split column and the path must both say train/ (data rule 2).
+            if split != "train" or sid not in allowed or not in_train_folder(rel):
                 _fail(f"session {sid} frame {number} is not a training frame, so it isn't drawn")
             paths.append(release / rel)
-        to_draw.append((AUDIT_DIR / name, paths))
+        to_draw.append((audit_dir / name, paths))
 
     # Exact copies: SHA-256 of the files of training_vs_test pairs 0 bits apart, and of no
     # other file. Data rule 2 allows checksums for the leakage audit; bytes are read, never
@@ -310,7 +325,7 @@ def duplicates(
         _fail(f"can't checksum a file of a pair with identical hashes: {err}")
     copies = duplicate_audit.exact_copies(checked, sha256)
 
-    thumb_dir = AUDIT_DIR / duplicate_audit.THUMBNAIL_DIR
+    thumb_dir = audit_dir / duplicate_audit.THUMBNAIL_DIR
     thumb_dir.mkdir(parents=True, exist_ok=True)
     for old in thumb_dir.glob("*.png"):  # thumbnails of an earlier run
         old.unlink()
@@ -342,9 +357,21 @@ def duplicates(
         phash_algorithm=phash.PHASH_ALGORITHM,
     )
     csv_text = duplicate_audit.duplicates_csv(pairs)
-    (AUDIT_DIR / DUPLICATES_CSV).write_text(csv_text, encoding="utf-8", newline="")
+    (audit_dir / DUPLICATES_CSV).write_text(csv_text, encoding="utf-8", newline="")
     report = duplicate_audit.duplicates_markdown(pairs, classes, copies, scope, provenance)
-    (AUDIT_DIR / DUPLICATES_REPORT).write_text(report, encoding="utf-8", newline="")
+    (audit_dir / DUPLICATES_REPORT).write_text(report, encoding="utf-8", newline="")
+    # Thumbnail file names are session ids, so the record names their folder.
+    record = provenance_json(
+        "weldpilot audit duplicates",
+        [
+            f"{AUDIT_FOLDER}/{DUPLICATES_CSV}",
+            f"{AUDIT_FOLDER}/{DUPLICATES_REPORT}",
+            f"{AUDIT_FOLDER}/{duplicate_audit.THUMBNAIL_DIR}/",
+        ],
+        code_sha,
+        fingerprint,
+    )
+    written = write_provenance(settings.reports_root, "audit_duplicates", record)
 
     n = len(frames)
     all_pairs = n * (n - 1) // 2
@@ -365,7 +392,8 @@ def duplicates(
         f"copies    {len(copies.identical):,} byte-identical of the {copies.n_checked:,} "
         f"{duplicate_audit.TRAINING_VS_TEST} pairs 0 bits apart"
     )
-    for path in (cache_path, AUDIT_DIR / DUPLICATES_CSV, AUDIT_DIR / DUPLICATES_REPORT):
+    for path in (cache_path, audit_dir / DUPLICATES_CSV, audit_dir / DUPLICATES_REPORT):
         typer.echo(f"wrote     {path}")
     typer.echo(f"wrote     {thumb_dir}/ ({len(to_draw)} thumbnails)")
+    typer.echo(f"wrote     {written}")
     typer.echo(f"total     {time.perf_counter() - started_run:.1f} s")

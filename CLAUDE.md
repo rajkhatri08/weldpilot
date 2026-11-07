@@ -7,7 +7,8 @@ Raj is building this to learn Claude Code and to show it in interviews. Explain 
 ## Commands
 
 - Sync dependencies: `uv sync`
-- Tests: `uv run pytest`
+- Tests: `uv run pytest` (leaves out the `data` tests, as CI does)
+- Data tests on the real local index: `uv run pytest -m data`
 - Lint and autofix: `uv run ruff check . --fix`
 - Format: `uv run ruff format .`
 - Type check: `uv run mypy src`
@@ -60,9 +61,9 @@ Don't create or edit these. Explain, hint when asked, and review. If a task need
 
 - Python 3.12, type hints everywhere, `pathlib`, no bare `except`.
 - Pure functions; file and network I/O at the edges.
-- Paths come from config (`WELDPILOT_DATA`, default `./data`), never hard-coded.
+- Paths come from config (`WELDPILOT_DATA`, default `./data`; `WELDPILOT_REPORTS`, default `./reports`), never hard-coded.
 - Portable code: no OS-specific paths, and project tasks as Typer CLI commands rather than shell scripts.
-- Tests are fast, use tiny synthetic fixtures, and never read real data. The one exception is `tests/test_leakage.py`: marked `data`, it reads the real local index (never images) and skips where the index is missing, as in CI.
+- Tests are fast, use tiny synthetic fixtures, and never read real data. The one exception is `tests/test_leakage.py`: marked `data`, it reads the real local index (never images). Plain `uv run pytest` and CI leave it out; `uv run pytest -m data` runs it, and it skips where the index is missing.
 
 ## Environment
 

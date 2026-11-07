@@ -53,8 +53,11 @@ files = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# An unknown marker is an error: a misspelt @pytest.mark.data would otherwise mark nothing.
-addopts = "--strict-markers"
+# --strict-markers: an unknown marker is an error, so a misspelt @pytest.mark.data can't
+# quietly mark nothing. -m 'not data': plain `uv run pytest`, as in CI, leaves the data tests
+# out; `uv run pytest -m data` runs them, because the last -m wins. -rfEs: list failures,
+# errors and skip reasons; a bare -rs would replace pytest's default fE and hide failures.
+addopts = "--strict-markers -m 'not data' -rfEs"
 markers = [
-    "data: reads the real local index under WELDPILOT_DATA, so it needs the dataset on this machine",
+    "data: reads the real local index under WELDPILOT_DATA, so it needs the dataset on this machine; left out unless run with `uv run pytest -m data`",
 ]

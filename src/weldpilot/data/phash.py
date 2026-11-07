@@ -5,8 +5,9 @@ alike get hashes a few bits apart, whereas their SHA-256s share nothing. This is
 pHash as `imagehash.phash` defines it: grayscale, resized to 32x32 with Lanczos, a 2-D
 DCT-II, the top-left 8x8 block of low frequencies (DC included), and one bit per
 coefficient, set when it is above the block's median. Bits run row by row, the first one
-most significant. Because the median splits the 64 coefficients in half, a hash has 32 bits
-set unless coefficients tie, and the distance between two such hashes is even.
+most significant. On two fixed images it gives exactly imagehash's hashes, which tests/data/
+test_phash.py checks. Because the median splits the 64 coefficients in half, a hash has 32
+bits set unless coefficients tie, and the distance between two such hashes is even.
 
 Hashes of test frames exist for the leakage audit only, which data rule 2 allows. Never use
 them, or phash.parquet, as features for anything else.

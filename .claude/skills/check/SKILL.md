@@ -9,11 +9,12 @@ Run these from the project root, one at a time. Keep going even if one fails.
 1. `uv run ruff check .`
 2. `uv run ruff format --check .`
 3. `uv run mypy src`
-4. `uv run pytest -q`
+4. `uv run pytest -q` (leaves out the data tests, as CI does)
+5. `uv run pytest -m data` (the data tests on the real local index; they skip where it is missing)
 
 Then report:
 
-- A table with one row per check: name, pass or fail, and the key number (errors found, or tests passed and failed).
+- A table with one row per check: name, pass or fail, and the key number (errors found, or tests passed, failed and skipped).
 - For each failure, the exact error lines copied from the output.
 - One sentence on the likely cause of each failure.
 

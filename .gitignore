@@ -2,7 +2,7 @@
 /data/*
 !/data/README.md
 !/data/annotations/
-/reports/
+reports/
 mlruns/
 
 # Secrets

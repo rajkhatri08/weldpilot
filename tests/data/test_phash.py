@@ -2,7 +2,7 @@
 
 import hashlib
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +36,19 @@ def analytic(size: tuple[int, int] = (160, 128)) -> Image.Image:
     y, x = np.mgrid[0:height, 0:width].astype(np.float64)
     spot = np.exp(-(((x - 0.6 * width) / 25.0) ** 2 + ((y - 0.4 * height) / 20.0) ** 2))
     pixels = 120 + 50 * np.sin(x / 9.0) * np.cos(y / 13.0) + 80 * spot
+    return Image.fromarray(np.clip(np.round(pixels), 0, 255).astype(np.uint8))
+
+
+def frame_like(size: tuple[int, int] = (302, 175)) -> Image.Image:
+    """A second fixed image from a formula alone, wider than tall like a camera frame: a
+    bright pool on a dim ramp, with ripples. Resizing it to 32x32 squeezes its two axes by
+    different amounts, unlike `analytic`."""
+    width, height = size
+    y, x = np.mgrid[0:height, 0:width].astype(np.float64)
+    cx, cy = 0.35 * width, 0.55 * height
+    pool = np.exp(-(((x - cx) / 30.0) ** 2 + ((y - cy) / 16.0) ** 2))
+    ripple = np.cos(np.hypot(x - cx, y - cy) / 6.0)
+    pixels = 30 + 0.4 * x + 25 * ripple + 170 * pool
     return Image.fromarray(np.clip(np.round(pixels), 0, 255).astype(np.uint8))
 
 
@@ -81,10 +94,21 @@ def test_a_textured_image_has_32_bits_set(seed: int) -> None:
     assert phash.phash_image(scene(seed)).bit_count() == 32
 
 
-def test_a_fixed_image_keeps_its_recorded_hash() -> None:
-    # A regression guard, not a spec: if this fails, the hash changed. Change
-    # PHASH_ALGORITHM too, so that caches made with the old hash are recomputed.
-    assert f"{phash.phash_image(analytic()):016x}" == "9b9c637c9c939c22"
+# Expected values from imagehash 4.3.2, an implementation independent of ours:
+# str(imagehash.phash(image)) with Pillow 13.0.0, numpy 2.5.4 and scipy 1.18.1, computed once
+# on 2026-11-06 with `uv run --with imagehash python ...`. imagehash is not a dependency.
+# They pin two things: our hash equals imagehash.phash on these images, and it hasn't
+# changed. If this fails, the hash changed: change PHASH_ALGORITHM too, so that caches made
+# with the old hash are recomputed.
+@pytest.mark.parametrize(
+    ("make", "expected"),
+    [(analytic, "9b9c637c9c939c22"), (frame_like, "863939c7c73839c9")],
+    ids=["analytic", "frame_like"],
+)
+def test_fixed_images_hash_as_imagehash_phash_does(
+    make: Callable[[], Image.Image], expected: str
+) -> None:
+    assert f"{phash.phash_image(make()):016x}" == expected
 
 
 def test_a_png_that_cant_be_read_is_named(tmp_path: Path) -> None:

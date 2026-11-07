@@ -24,10 +24,9 @@ CLASS_COLOURS: dict[int, str] = {
 }
 """One fixed colour per class, so a class looks the same in every figure.
 
-In a timeline any two classes can touch, so all 15 pairs were checked with the dataviz
-palette validator: worst colour-blind separation dE 6.9 (target 8) and normal vision dE 15.5
-(floor 15), the best of 280 sets tried. Below the target, colour must not carry the class
-alone, so fault bars also carry their class number."""
+Any two classes can touch in a timeline, so where there is room colour doesn't carry the
+class alone: a fault bar at least LABEL_SHARE of the x range wide also carries its class
+number. Narrower fault bars, and good weld, have their colour and the legend only."""
 
 SURFACE = "#fcfcfb"  # the background, which is also what a missing frame shows
 INK = "#0b0b0b"

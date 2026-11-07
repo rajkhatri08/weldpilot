@@ -8,6 +8,7 @@ import csv
 import io
 import random
 from collections.abc import Collection, Mapping, Sequence
+from dataclasses import dataclass
 
 import pandas as pd
 
@@ -92,20 +93,41 @@ def marks_csv(session_ids: Sequence[str]) -> str:
     return out.getvalue()
 
 
-def marked_sessions(text: str, source: str) -> list[str]:
-    """The distinct session ids in a marks file, sorted.
+@dataclass(frozen=True)
+class MarksRow:
+    """A row of a marks file that isn't blank."""
 
-    A session marked in two passes appears once. Rows whose cells are all blank, such as one
-    a spreadsheet app adds, are skipped; a row with other cells but no id gives "". Raises
-    ValueError if the file has no session_id column.
+    line: int  # its line in the file, as the csv module counts; the header is line 1
+    cells: Mapping[str, str]  # each column of the header: its text, stripped ("" if blank)
+
+
+def read_marks(text: str) -> tuple[list[str], list[MarksRow]]:
+    """The one reader of onset_marks.csv: its columns, and its rows that aren't blank.
+
+    Every command reads the file through here, so all of them see the same rows. A leading
+    byte-order mark is dropped, every cell is stripped, and a row whose cells are all blank,
+    such as one a spreadsheet app adds, is skipped. Checking columns and values is left to
+    the caller.
     """
-    reader = csv.DictReader(io.StringIO(text))
-    if reader.fieldnames is None or "session_id" not in reader.fieldnames:
+    reader = csv.DictReader(io.StringIO(text.removeprefix("﻿")))
+    columns = list(reader.fieldnames or [])
+    rows: list[MarksRow] = []
+    for row in reader:
+        if not any(str(cell).strip() for cell in row.values() if cell):
+            continue
+        cells = {name: (row.get(name) or "").strip() for name in columns}
+        rows.append(MarksRow(reader.line_num, cells))
+    return columns, rows
+
+
+def marked_sessions(text: str, source: str) -> list[str]:
+    """The distinct session ids in a marks file, sorted, as `read_marks` reads it.
+
+    A session marked in two passes appears once, and spaces around an id are dropped. A row
+    with other cells but no id gives "". Raises ValueError if the file has no session_id
+    column. Pass and onset values aren't checked here: these commands need the ids only.
+    """
+    columns, rows = read_marks(text)
+    if "session_id" not in columns:
         raise ValueError(f"{source} has no session_id column")
-    return sorted(
-        {
-            row["session_id"] or ""
-            for row in reader
-            if any(str(cell).strip() for cell in row.values() if cell)
-        }
-    )
+    return sorted({row.cells["session_id"] for row in rows})

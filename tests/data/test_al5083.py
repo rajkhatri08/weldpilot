@@ -1,6 +1,11 @@
 import pytest
 
-from weldpilot.data.al5083 import FolderName, parse_folder_name, parse_frame_name
+from weldpilot.data.al5083 import (
+    FolderName,
+    in_train_folder,
+    parse_folder_name,
+    parse_frame_name,
+)
 
 
 @pytest.mark.parametrize(
@@ -43,3 +48,19 @@ def test_frame_name_gives_frame_number() -> None:
 def test_any_other_frame_name_is_an_error(name: str) -> None:
     with pytest.raises(ValueError, match=r"frame_#####\.png"):
         parse_frame_name(name)
+
+
+@pytest.mark.parametrize(
+    ("rel_path", "expected"),
+    [
+        ("train/990101-100000-Al 2mm-part1/frame_00001.png", True),
+        ("test/990101-120000-Al 2mm/frame_00001.png", False),
+        ("train/../test/990101-120000-Al 2mm/frame_00001.png", False),  # starts with train/
+        ("/train/990101-100000-Al 2mm/frame_00001.png", False),  # absolute
+        ("training/990101-100000-Al 2mm/frame_00001.png", False),
+        ("train", False),  # the folder itself, not a frame in it
+        ("", False),
+    ],
+)
+def test_only_paths_inside_train_are_in_the_train_folder(rel_path: str, expected: bool) -> None:
+    assert in_train_folder(rel_path) is expected

@@ -3,6 +3,7 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import PurePosixPath
 
 DATASET_DIR = "tig-al5083"
 """Folder under `<data root>/raw/` that holds the release."""
@@ -63,3 +64,14 @@ def parse_frame_name(name: str) -> int:
     if match is None:
         raise ValueError(f"not a frame_#####.png file name: {name!r}")
     return int(match["number"])
+
+
+def in_train_folder(rel_path: str) -> bool:
+    """Whether a frame's path, relative to the release folder and "/"-separated as the index
+    stores it, lies in train/: its first part is train and no part is "..".
+
+    Image guards check this as well as the split column, so a row whose split says train but
+    whose path leads into test/ is never drawn (data rule 2).
+    """
+    parts = PurePosixPath(rel_path).parts
+    return len(parts) > 1 and parts[0] == "train" and ".." not in parts
